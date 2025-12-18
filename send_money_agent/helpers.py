@@ -1,25 +1,4 @@
-from typing import Optional, Dict
 from google.adk.tools import ToolContext
-
-
-def get_country_data(country: str) -> Optional[Dict]:
-    """
-    Retrieve country configuration from mock data
-    
-    Args:
-        country: Country name (case-insensitive)
-    
-    Returns:
-        dict with country data if found, None otherwise
-    """
-    from .mock_data import SUPPORTED_COUNTRIES
-    
-    country_lower = country.lower()
-    for country_config in SUPPORTED_COUNTRIES:
-        if country_config['country_name'].lower() == country_lower:
-            return country_config
-    
-    return None
 
 
 def calculate_receive_amount(tool_context: ToolContext) -> None:
