@@ -11,9 +11,6 @@ from .helpers import (
     get_initial_state
 )
 
-# Valid currency codes for reverse calculation
-SUPPORTED_CURRENCY_CODES = {c['currency_code'] for c in SUPPORTED_COUNTRIES}
-
 
 def set_destination(country: str, tool_context: ToolContext) -> dict:
     """

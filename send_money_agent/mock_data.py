@@ -27,14 +27,6 @@ def get_supported_country_names() -> list:
     return [country['country_name'] for country in SUPPORTED_COUNTRIES]
 
 
-def get_available_methods(country: str) -> list:
-    """Get available delivery methods for a country"""
-    country_lower = country.lower()
-    for country_config in SUPPORTED_COUNTRIES:
-        if country_config['country_name'].lower() == country_lower:
-            return country_config['delivery_methods']
-    return []
-
 def get_country_data(country: str) -> Optional[Dict]:
     """Get country data by name"""
     country_lower = country.lower()
