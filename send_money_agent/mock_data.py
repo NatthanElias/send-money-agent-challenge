@@ -32,3 +32,11 @@ def get_available_methods(country: str) -> list:
         if country_config['country_name'].lower() == country_lower:
             return country_config['delivery_methods']
     return []
+
+def get_country_data(country: str) -> Optional[Dict]:
+    """Get country data by name"""
+    country_lower = country.lower()
+    for country_config in SUPPORTED_COUNTRIES:
+        if country_config['country_name'].lower() == country_lower:
+            return country_config
+    return None

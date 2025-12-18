@@ -12,18 +12,21 @@ from .tools import (
 )
 from .prompts.prompt_v1 import get_system_instruction
 from .helpers import all_fields_complete, get_missing_fields
+from .mock_data import get_country_data
 
+
+country_data = get_country_data("Brazil")
 
 # Default initial state
 INITIAL_STATE = {
-    "destination_country": "Brazil",
-    "destination_currency_code": "BRL",
-    "exchange_rate": 5.36,
+    "destination_country": country_data['country_name'], # Brazil
+    "destination_currency_code": country_data['currency_code'], # BRL
+    "exchange_rate": country_data['exchange_rate'], # 5.36
     "send_amount": "",
     "receive_amount": "",
     "beneficiary": "",
     "delivery_method": "",
-    "available_methods": ["Pix", "Bank Transfer"],
+    "available_methods": country_data['delivery_methods'], # ["Pix", "Bank Transfer"]
     "stage": "collecting",
     "transaction_id": ""
 }
