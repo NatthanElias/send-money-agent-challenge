@@ -222,7 +222,7 @@ def confirm_transfer(confirmed: bool, tool_context: ToolContext) -> dict:
     """
     Finalize or restart the transfer flow.
     
-    Blocks confirmation if there are validation errors.
+    Blocks confirmation if there are validation errors or missing required fields.
     """
     # Check for blocking errors before confirming
     if confirmed and tool_context.state.get('validation_errors'):
@@ -231,6 +231,17 @@ def confirm_transfer(confirmed: bool, tool_context: ToolContext) -> dict:
             "error": "cannot_confirm_with_errors",
             "message": "Cannot confirm transfer while there are validation errors. Please fix the errors first."
         }
+    
+    # CRITICAL: Block confirmation if required fields are missing (e.g., after cancellation)
+    if confirmed:
+        required_fields = ['destination_country', 'send_amount', 'beneficiary', 'delivery_method']
+        missing = [field for field in required_fields if not tool_context.state.get(field)]
+        if missing:
+            return {
+                "success": False,
+                "error": "incomplete_transfer_data",
+                "message": f"Cannot confirm transfer. Missing required information: {', '.join(missing)}. Please start a new transfer."
+            }
     
     if confirmed:
         # Generate transaction ID and complete
