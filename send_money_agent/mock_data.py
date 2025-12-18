@@ -1,3 +1,5 @@
+from typing import Optional, Dict
+
 SUPPORTED_COUNTRIES = [
     {
         "country_name": "Brazil",
