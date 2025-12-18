@@ -10,44 +10,41 @@ from .tools import (
     set_transfer_details,
     confirm_transfer
 )
-from .prompts.prompt_v1 import get_system_instruction
+from .prompts.prompt_v2 import get_system_instruction
 from .helpers import all_fields_complete, get_missing_fields
 from .mock_data import get_country_data
 
 
-country_data = get_country_data("Brazil")
+# Get default country data for initialization
+_default_country = get_country_data("Brazil")
 
 # Default initial state
 INITIAL_STATE = {
-    "destination_country": country_data['country_name'], # Brazil
-    "destination_currency_code": country_data['currency_code'], # BRL
-    "exchange_rate": country_data['exchange_rate'], # 5.36
+    # Required fields
+    "destination_country": _default_country['country_name'],
+    "destination_currency_code": _default_country['currency_code'],
+    "exchange_rate": _default_country['exchange_rate'],
     "send_amount": "",
-    "receive_amount": "",
     "beneficiary": "",
     "delivery_method": "",
-    "available_methods": country_data['delivery_methods'], # ["Pix", "Bank Transfer"]
+    # Calculated fields
+    "receive_amount": "",
+    "transaction_id": "",
+    # Control state flow
+    "available_methods": _default_country['delivery_methods'],
     "stage": "collecting",
-    "transaction_id": ""
+    # Validation and clarification state
+    "validation_errors": "",
+    "clarification_needed": "",
+    "clarification_reason": ""
 }
 
 
 def before_agent_callback(callback_context: CallbackContext) -> Optional[types.Content]:
-    """
-    Initialize state before agent runs.
-
-    Args:
-        callback_context: CallbackContext with access to agent state
-        
-    Returns:
-        None to proceed with agent execution
-    """
-    # Initialize any missing state keys with defaults
+    """Initialize state before agent runs."""
     for key, default_value in INITIAL_STATE.items():
         if key not in callback_context.state:
             callback_context.state[key] = default_value
-    
-    # Return None to proceed with normal agent execution
     return None
 
 
@@ -60,32 +57,25 @@ def after_tool_callback(
     """
     Centralized stage management callback.
     
-    Runs after ANY tool completes. Checks if all required fields are
-    collected and automatically advances from 'collecting' → 'confirming'.
-    
-    Args:
-        tool: The tool that was executed
-        args: Arguments passed to the tool
-        tool_context: ToolContext with access to state
-        tool_response: The response from the tool
-    
-    Returns:
-        None: Use original tool_response unchanged
+    Advances from 'collecting' → 'confirming' when all fields complete
+    and there are no validation errors.
     """
     current_stage = tool_context.state.get('stage', 'collecting')
     
     # Only check for advancement if we're in collecting stage
     if current_stage == 'collecting':
+        # Don't advance if there are validation errors
+        if tool_context.state.get('validation_errors'):
+            print(f"[Callback] Blocked by validation errors")
+            return None
+            
         if all_fields_complete(tool_context.state):
-            # All required fields are present - advance to confirmation
             tool_context.state['stage'] = 'confirming'
             print(f"[Callback] Stage advanced: collecting → confirming")
         else:
-            # Still collecting - log what's missing for debugging
             missing = get_missing_fields(tool_context.state)
             print(f"[Callback] Still collecting. Missing: {missing}")
     
-    # Return None to use the original tool_response unchanged
     return None
 
 
