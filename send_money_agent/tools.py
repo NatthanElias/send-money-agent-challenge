@@ -2,13 +2,17 @@ import uuid
 from typing import Optional
 from google.adk.tools import ToolContext
 
-from .mock_data import get_supported_country_names, get_country_data
+from .mock_data import get_supported_country_names, get_country_data, SUPPORTED_COUNTRIES
 from .helpers import (
     calculate_receive_amount,
     clear_validation_state,
     validate_amount,
-    check_beneficiary_clarification
+    check_beneficiary_clarification,
+    get_initial_state
 )
+
+# Valid currency codes for reverse calculation
+SUPPORTED_CURRENCY_CODES = {c['currency_code'] for c in SUPPORTED_COUNTRIES}
 
 
 def set_destination(country: str, tool_context: ToolContext) -> dict:
@@ -19,6 +23,10 @@ def set_destination(country: str, tool_context: ToolContext) -> dict:
     """
     # Clear previous validation state
     clear_validation_state(tool_context)
+    
+    # Move from initial to collecting when user engages
+    if tool_context.state.get('stage') == 'initial':
+        tool_context.state['stage'] = 'collecting'
     
     country_data = get_country_data(country)
     
@@ -58,12 +66,16 @@ def set_destination(country: str, tool_context: ToolContext) -> dict:
 
 def set_amount(amount: float, tool_context: ToolContext) -> dict:
     """
-    Set the amount to send and calculate receive amount.
+    Set the amount to send (in USD) and calculate receive amount.
     
     Validates amount is positive and within limits.
     """
     # Clear previous validation state
     clear_validation_state(tool_context)
+    
+    # Move from initial to collecting when user engages
+    if tool_context.state.get('stage') == 'initial':
+        tool_context.state['stage'] = 'collecting'
     
     # Validate amount
     is_valid, error_message = validate_amount(amount)
@@ -95,6 +107,71 @@ def set_amount(amount: float, tool_context: ToolContext) -> dict:
     }
 
 
+def calculate_usd_from_target(target_amount: float, tool_context: ToolContext) -> dict:
+    """
+    Reverse calculation: Calculate USD amount from target currency amount.
+    
+    ONLY converts from supported destination currencies (BRL, MXN, ARS) to USD.
+    Does NOT support cross-currency calculations (e.g., BRL to MXN).
+    
+    Args:
+        target_amount: Amount the beneficiary should receive in destination currency
+        tool_context: ToolContext with access to state
+        
+    Returns:
+        USD amount needed to send, or error if invalid
+    """
+    clear_validation_state(tool_context)
+    
+    # Move from initial to collecting when user engages
+    if tool_context.state.get('stage') == 'initial':
+        tool_context.state['stage'] = 'collecting'
+    
+    # Get current exchange rate and currency from state
+    exchange_rate = tool_context.state.get('exchange_rate')
+    currency_code = tool_context.state.get('destination_currency_code')
+    country = tool_context.state.get('destination_country')
+    
+    if not exchange_rate or not currency_code:
+        return {
+            "success": False,
+            "error": "no_destination_set",
+            "message": "Please set a destination country first before calculating from target amount."
+        }
+    
+    if target_amount <= 0:
+        tool_context.state['validation_errors'] = "Target amount must be greater than 0"
+        return {
+            "success": False,
+            "error": "invalid_target_amount",
+            "message": "Target amount must be greater than 0"
+        }
+    
+    # Calculate USD from target: USD = target / rate
+    usd_amount = round(target_amount / exchange_rate, 2)
+    
+    # Validate the calculated USD amount
+    is_valid, error_message = validate_amount(usd_amount)
+    if not is_valid:
+        tool_context.state['validation_errors'] = error_message
+        return {
+            "success": False,
+            "error": "calculated_amount_invalid",
+            "message": f"The calculated USD amount (${usd_amount:,.2f}) {error_message.lower()}"
+        }
+    
+    # Set the calculated amount in state
+    tool_context.state['send_amount'] = usd_amount
+    tool_context.state['receive_amount'] = target_amount
+    
+    return {
+        "success": True,
+        "send_amount": usd_amount,
+        "receive_amount": target_amount,
+        "currency_code": currency_code
+    }
+
+
 def set_transfer_details(
     tool_context: ToolContext,
     beneficiary: Optional[str] = None,
@@ -107,6 +184,10 @@ def set_transfer_details(
     """
     # Clear previous validation state
     clear_validation_state(tool_context)
+    
+    # Move from initial to collecting when user engages
+    if tool_context.state.get('stage') == 'initial':
+        tool_context.state['stage'] = 'collecting'
     
     updates = {}
     
@@ -176,3 +257,20 @@ def confirm_transfer(confirmed: bool, tool_context: ToolContext) -> dict:
             "success": True,
             "message": "No problem! What would you like to change?"
         }
+
+
+def cancel_transfer_session(tool_context: ToolContext) -> dict:
+    """
+    Cancel the current transfer session and reset all state.
+    
+    Called when user wants to abandon the transfer (says "Stop", "Cancel", "Forget it").
+    Wipes all transfer data and returns stage to 'initial'.
+    """
+    # Reset all state to initial empty values and Brazil again
+    initial_state = get_initial_state(get_country_data("Brazil"))
+    for key, value in initial_state.items():
+        tool_context.state[key] = value
+    
+    return {
+        "success": True
+    }
