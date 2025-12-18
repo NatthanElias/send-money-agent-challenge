@@ -1,8 +1,3 @@
-"""
-Send Money Bot Agent definition.
-Uses callback-based stage management for robust state transitions.
-"""
-
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools import ToolContext, BaseTool
@@ -16,7 +11,7 @@ from .tools import (
     confirm_transfer
 )
 from .prompts.prompt_v1 import get_system_instruction
-from .transfer_state import all_fields_complete, get_missing_fields
+from .helpers import all_fields_complete, get_missing_fields
 
 
 # Default initial state

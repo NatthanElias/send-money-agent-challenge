@@ -1,12 +1,3 @@
-"""
-Mock country data for Send Money Agent
-
-In production, this would be replaced with API calls to:
-- Exchange rate service
-- Payment method availability service
-- Country configuration database
-"""
-
 SUPPORTED_COUNTRIES = [
     {
         "country_name": "Brazil",

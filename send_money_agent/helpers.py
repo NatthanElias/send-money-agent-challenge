@@ -1,13 +1,3 @@
-"""
-State management helper functions for Send Money Agent
-
-Provides utilities for:
-- Country data lookup
-- Field validation
-- Amount calculations
-- Completion checking
-"""
-
 from typing import Optional, Dict
 from google.adk.tools import ToolContext
 

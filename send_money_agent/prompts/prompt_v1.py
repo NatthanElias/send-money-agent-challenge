@@ -1,9 +1,3 @@
-"""
-System instruction for Send Money Agent
-Uses ADK state templating with {key} syntax.
-"""
-
-
 def get_system_instruction() -> str:
     """
     Get the system instruction for the Send Money Agent

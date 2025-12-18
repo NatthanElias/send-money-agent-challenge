@@ -1,14 +1,9 @@
-"""
-ADK Tools for the Send Money Bot.
-4 focused tools with single responsibilities.
-"""
-
 import uuid
 from typing import Optional
 from google.adk.tools import ToolContext
 
 from .mock_data import get_supported_country_names
-from .transfer_state import get_country_data, calculate_receive_amount
+from .helpers import get_country_data, calculate_receive_amount
 
 
 def set_destination(country: str, tool_context: ToolContext) -> dict:
